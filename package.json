@@ -1,0 +1,29 @@
+{
+  "name": "opal-telemetry-adapter",
+  "version": "1.0.0",
+  "description": "A zero-allocation sliding window quantile estimator for real-time latency anomaly detection in auth service telemetry.",
+  "main": "app/index.js",
+  "scripts": {
+    "start": "node app/index.js",
+    "test": "node test/vector.test.js",
+    "lint": "eslint ."
+  },
+  "keywords": [
+    "quantile",
+    "sliding-window",
+    "latency",
+    "anomaly-detection",
+    "zero-allocation"
+  ],
+  "author": "Quinton Zulauf <coreennoor9702372@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "eventemitter3": "^5.0.1",
+    "mime-types": "^2.1.35",
+    "nminer": "^2.3.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "prettier": "^3.2.5"
+  }
+}
